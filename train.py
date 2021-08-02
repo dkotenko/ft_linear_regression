@@ -1,35 +1,11 @@
 import argparse
 import random
 import sys
-import seaborn as sns
 import matplotlib.pyplot as plt
 from Printer import Printer
 from Reader import Reader
 from const import EPSILON, PARAMS_FILEPATH, PARAMS_HEADER
-
-
-def mean_lst(lst):
-    return float(sum(lst)) / len(lst)
-
-
-def std_lst(lst):
-    variance = sum([((x - mean_lst(lst)) ** 2) for x in lst]) / len(lst)
-    stddev = variance ** 0.5
-    return stddev
-
-
-def norm_data(lst):
-    new_lst = []
-    for elem in lst:
-        new_lst.append((elem - mean_lst(lst)) / std_lst(lst))
-    return new_lst
-
-
-def mse(y, y_pred):
-    loss_lst = []
-    for i in range(len(y)):
-        loss_lst.append((y_pred[i] - y[i]) ** 2)
-    return mean_lst(loss_lst)
+from calc import *
 
 
 def predict_lst(x, theta0, theta1):
@@ -56,32 +32,33 @@ def save_params(x, theta0, theta1):
             f.write(f'{PARAMS_HEADER}\n')
             f.write(f'{str(theta0)},{str(theta1)},{str(mean_lst(x))},{str(std_lst(x))}')
     except IOError:
-        error("Cant open {} file.".format(param_file))
+        Printer.print_error_exit(f"Cant open {PARAMS_FILEPATH} file.")
 
 
-def r_squared(y, y_pred):
-    ss_tot = []
-    ss_res = []
-    mean_y = mean_lst(y)
-    for i in range(len(y)):
-        ss_tot.append((y[i] - mean_y)**2)
-        ss_res.append((y[i] - y_pred[i])**2)
-    return 1 - (sum(ss_res)/sum(ss_tot))
-
-
-def plot(x, y, y_pred):
-    sns.set_style('white')
-    sns.scatterplot(x=x, y=y, label='Data')
-    plt.plot(x, y_pred, color='red', label='Linear Regression')
+def draw_plot(x, y, y_pred):
+    plt.figure(figsize=(5, 5))
+    plt.grid(True)
+    plt.scatter(x=x, y=y, label='Data', color='red')
+    plt.plot(x, y_pred, label='Linear Regression')
     plt.legend(loc='best')
     plt.xlabel('km')
     plt.ylabel('price')
-    plt.savefig('plot.png')
+    plt.gca().set_axisbelow(True)
+    plt.show()
+
+
+def draw_errors(errors):
+    plt.plot([i for i in range(len(errors))], errors, label='Model loss')
+    plt.legend(loc='best')
+    plt.xlabel('epoch')
+    plt.ylabel('loss')
+    plt.show()
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('path', help='path to data file')
+    parser.add_argument('-errors', help='show plot', action='store_true')
     parser.add_argument('-plot', help='show plot', action='store_true')
     parser.add_argument('-r2', help='show R2 metric', action='store_true')
     parser.add_argument('-epochs', help='training iterations number', default=1000, type=int)
@@ -93,23 +70,31 @@ def parse_args():
     return args
 
 
+def get_updated_loss(km_list, theta0, theta1, prices, errors):
+    predicted = predict_lst(km_list, theta0, theta1)
+    mse_val = mse(prices, predicted)
+    errors.append(mse_val)
+    return mse_val
+
+
 def train(km_list, prices, lr, verbose, epochs):
     theta0 = random.random()
     theta1 = random.random()
     km_list = norm_data(km_list)
-    loss = mse(prices, predict_lst(km_list, theta0, theta1))
-    epoch, prev_loss  = 0, 0
+    errors = []
+    loss = get_updated_loss(km_list, theta0, theta1, prices, errors)
+    epoch, prev_loss = 0, 0
     while abs(loss - prev_loss) > EPSILON:
         epoch += 1
         theta0, theta1 = update_thetas(km_list, prices, lr, theta0, theta1)
-        prev_loss, loss = loss, mse(prices, predict_lst(km_list, theta0, theta1))
+        prev_loss, loss = loss, get_updated_loss(km_list, theta0, theta1, prices, errors)
         if verbose:
             print(f'epoch: {epoch:3}, loss: {loss:20}, learning rate(step): {lr:3.10f}')
         if epoch == epochs:
             break
     if verbose:
         print(f'Model trained {epoch} epochs, theta0 - {theta0}, theta1 - {theta1}')
-    return theta0, theta1
+    return theta0, theta1, errors
 
 
 def main():
@@ -119,36 +104,15 @@ def main():
         Printer.print_error_exit('invalid parameter value: -lr: learning rate must be in range (0;1)')
     if args.epochs <= 0:
         Printer.print_error_exit('invalid parameter value: -epochs: must be positive')
-    theta0, theta1 = train(km_list, prices, args.lr, args.verbose, args.epochs)
+    theta0, theta1, errors = train(km_list, prices, args.lr, args.verbose, args.epochs)
     save_params(km_list, theta0, theta1)
     if args.plot:
-        plot(km_list, prices, predict_lst(norm_data(km_list), theta0, theta1))
-
-
+        draw_plot(km_list, prices, predict_lst(norm_data(km_list), theta0, theta1))
     if args.r2:
         print('R2 metric -', r_squared(prices, predict_lst(norm_data(km_list), theta0, theta1)))
+    if args.errors:
+        draw_errors(errors)
 
-def plot_f(km_list, prices, predict):
-    plt.figure(figsize=(5, 5))
-    plt.plot(x, y, "b.")
-    plt.grid(True)
-    plt.xlabel("Millage")
-    plt.ylabel("Price")
-    plt.title("ft_linear_regression")
-    plot()
-    min_x = min(x)
-    max_x = max(x)
-    min_y = min(y)
-    max_y = max(y)
-    line_x = [min_x, max_x]
-    line_y = []
-    for point in line_x:
-        normalized_x = (point - min_x) / (max_x - min_x)
-        point = b * normalized_x + a
-        denormalized_y = point * (max_y - min_y) + min_y
-        line_y.append(denormalized_y)
-    plt.plot(line_x, line_y, 'y')
-    plt.show()
 
 if __name__ == '__main__':
     main()
