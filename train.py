@@ -123,10 +123,32 @@ def main():
     save_params(km_list, theta0, theta1)
     if args.plot:
         plot(km_list, prices, predict_lst(norm_data(km_list), theta0, theta1))
-        print('Graph save to plot.png')
+
+
     if args.r2:
         print('R2 metric -', r_squared(prices, predict_lst(norm_data(km_list), theta0, theta1)))
 
+def plot_f(km_list, prices, predict):
+    plt.figure(figsize=(5, 5))
+    plt.plot(x, y, "b.")
+    plt.grid(True)
+    plt.xlabel("Millage")
+    plt.ylabel("Price")
+    plt.title("ft_linear_regression")
+    plot()
+    min_x = min(x)
+    max_x = max(x)
+    min_y = min(y)
+    max_y = max(y)
+    line_x = [min_x, max_x]
+    line_y = []
+    for point in line_x:
+        normalized_x = (point - min_x) / (max_x - min_x)
+        point = b * normalized_x + a
+        denormalized_y = point * (max_y - min_y) + min_y
+        line_y.append(denormalized_y)
+    plt.plot(line_x, line_y, 'y')
+    plt.show()
 
 if __name__ == '__main__':
     main()
