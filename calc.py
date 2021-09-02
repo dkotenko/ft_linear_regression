@@ -34,10 +34,13 @@ def std_lst(lst):
     return stddev
 
 
-def norm_data(lst):
+def norm_data_lst(lst):
     new_lst = []
+    std = std_lst(lst)
+    if not std:
+        std = 1
     for elem in lst:
-        new_lst.append((elem - mean_lst(lst)) / std_lst(lst))
+        new_lst.append((elem - mean_lst(lst)) / std)
     return new_lst
 
 

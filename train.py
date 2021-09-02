@@ -4,7 +4,7 @@ import sys
 import matplotlib.pyplot as plt
 from Printer import Printer
 from Reader import Reader
-from const import EPSILON, PARAMS_FILEPATH, PARAMS_HEADER
+from const import EPSILON, PARAMS_FILEPATH, PARAMS_HEADER, GREEN, RESET
 from calc import *
 
 
@@ -80,7 +80,7 @@ def get_updated_loss(km_list, theta0, theta1, prices, errors):
 def train(km_list, prices, lr, verbose, epochs):
     theta0 = random.random()
     theta1 = random.random()
-    km_list = norm_data(km_list)
+    km_list = norm_data_lst(km_list)
     errors = []
     loss = get_updated_loss(km_list, theta0, theta1, prices, errors)
     epoch, prev_loss = 0, 0
@@ -112,6 +112,7 @@ def main():
         print('R2 metric -', r_squared(prices, predict_lst(norm_data(km_list), theta0, theta1)))
     if args.errors:
         draw_errors(errors)
+    print(f"{GREEN}Model has been trained{RESET}")
 
 
 if __name__ == '__main__':
