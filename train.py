@@ -106,10 +106,12 @@ def main():
         Printer.print_error_exit('invalid parameter value: -epochs: must be positive')
     theta0, theta1, errors = train(km_list, prices, args.lr, args.verbose, args.epochs)
     save_params(km_list, theta0, theta1)
-    if args.plot:
-        draw_plot(km_list, prices, predict_lst(norm_data(km_list), theta0, theta1))
-    if args.r2:
-        print('R2 metric -', r_squared(prices, predict_lst(norm_data(km_list), theta0, theta1)))
+    if args.plot or args.r2:
+        predicted_values = predict_lst(norm_data_lst(km_list), theta0, theta1)
+        if args.plot:
+            draw_plot(km_list, prices, predicted_values)
+        if args.r2:
+            print('R2 metric -', r_squared(prices, predicted_values))
     if args.errors:
         draw_errors(errors)
     print(f"{GREEN}Model has been trained{RESET}")
